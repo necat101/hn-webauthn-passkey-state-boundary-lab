@@ -10,4 +10,4 @@ jobs:
           python-version: '3.12'
       - run: python3 evaluator.py
       - run: python3 -m unittest tests/test_passkey_boundary.py -v
-      - run: ./verify.sh
+      - run: bash verify.sh
