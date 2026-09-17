@@ -1,51 +1,42 @@
-# VERIFY.md — Fresh-clone verification transcript
+# VERIFY.md -- Fresh-clone verification transcript
 
-This file records the procedure to verify the lab from a fresh unauthenticated HTTPS clone.
+This file records verification of the **repair A** revision and the later documentation-only **B**.
 
-## Public clone (no file://)
+## A -- Repair A (the tested implementation revision)
+
+**Commit A** is the repair that:
+- BE=1 establishes backup eligibility, not current sync state (1,0 eligible not currently backed up vs 1,1 currently backed up);
+- attestation presence alone, without sufficient trusted metadata/evidence, does not establish hardware binding for these synthetic cases (modeled-evidence conclusion, not a universal WebAuthn rule);
+- HN ledger is 5 distinct retrieved comments (patja 49629098, VCFundedGenYer 49629041, hn993302 49629573, andychiare 49629045, jimz 49629749);
+- stubs cleaned; workflow fixed to `bash verify.sh`.
+
+## Fresh-clone verification of A (unauthenticated HTTPS, no file://)
 
 ```sh
-# Fresh clone — HTTPS, no authentication, no local file substitution
 git clone https://github.com/necat101/hn-webauthn-passkey-state-boundary-lab.git
 cd hn-webauthn-passkey-state-boundary-lab
-
-# Check tested revision
-git rev-parse HEAD
-# Expected: 8b4d9eccf57189a8aee3ea4bbb048aafc3d61180 (verify date 2026-09-17)
-
-# Run evaluator and tests from the clone — no file:// substitute
+git rev-parse HEAD          # -> A
 python3 evaluator.py
-# Expected: 10 cases · 4 single-device · 5 multi-device · 1 invalid -> results.json + RESULTS.md
-
 python3 -m unittest tests/test_passkey_boundary.py -v
-# Expected: 14 tests OK
-
-./verify.sh
-# Expected: verify OK
+bash verify.sh
+git rev-parse HEAD && git status && git diff --stat   # HEAD/origin/status checks
+# Compare generated evidence vs HEAD (should be no diff -- results.json is gitignored)
+bash verify.sh && git diff --stat  # generated-evidence diff check
 ```
 
-## Actual run (2026-09-17, clone at 8b4d9eccf57189a8aee3ea4bbb048aafc3d61180)
+### Actual run for this repo (filled after A is pushed; see transcript below)
 
 ```
-Cloning into 'verify_clone'...
-8b4d9eccf57189a8aee3ea4bbb048aafc3d61180
-
-10 cases · 4 single-device · 5 multi-device · 1 invalid -> results.json + RESULTS.md
-
-Ran 14 tests in 0.008s — OK
-
-RESULTS.md: 10 cases · 4 single-device · 5 multi-device · 1 invalid, hw_proven_any=False
+# 2026-09-17 -- fresh clone at A (recorded after A push)
+# (this section is updated to the real transcript once A is verified)
 ```
 
-## What is verified
+## B -- Documentation-only follow-up
 
-- BE/BS table: 0,0 single-device | 0,1 invalid | 1,0 multi-device not backed up | 1,1 multi-device backed up
-- discoverable does not prove sync state; platform != synced; roaming != single-device
-- attestation informs RP policy but is not hardware-binding proof; lack of attestation != proof of synced
-- FIDO "passkey" includes device-bound and synced variants
-- No overall "secure passkey" verdict emitted — six orthogonal outputs only
-- No browser automation, authenticators, network, or external packages used
+**Commit B** records that A was fresh-clone matched and executed; B does not claim to self-verify.
 
-## Workflow status
+B's own Actions status is inspected via approved GitHub tooling (`github__list_workflow_runs` / `github__get_workflow_run` / REST `actions/runs`).
 
-GitHub Actions workflow `.github/workflows/verify.yml` runs `evaluator.py` + `test_passkey_boundary.py` on push/PR.
+## Workflow
+
+`.github/workflows/verify.yml` runs `python3 evaluator.py`, `python3 -m unittest tests/test_passkey_boundary.py -v`, and `bash verify.sh` on push/PR.

@@ -2,18 +2,19 @@
 """
 Deterministic WebAuthn Level 3 BE/BS + passkey-state classifier.
 
-Synthetic credential records only — no browser, no authenticator, no network.
+Synthetic credential records only -- no browser, no authenticator, no network.
 Stdlib only. Separates six orthogonal outputs:
 
   credential_scope        single-device | multi-device | invalid
-  backup_eligible         BE==1
-  currently_backed_up     BS==1 (meaningful only when BE==1)
+  backup_eligible         BE==1  (backup eligibility, not current sync state)
+  currently_backed_up     BS==1  (currently backed up; meaningful only when BE==1)
   discoverable            input discoverable boolean
   attestation_present     attestation_format != "none"
-  hardware_binding_proven False for all synthetic records (attestation informs
-                          RP policy but is not proof of hardware binding)
+  hardware_binding_proven False for all synthetic records (attestation presence
+                          alone, without sufficient trusted metadata/evidence,
+                          does not establish hardware binding for these cases)
 
-Normative grounding: W3C WebAuthn Level 3 §6.1.3 + authenticator-data flags table.
+Normative grounding: W3C WebAuthn Level 3 S.6.1.3 + authenticator-data flags table.
 """
 import json
 import pathlib
@@ -71,22 +72,24 @@ def classify(record: dict) -> dict:
 
     attestation_present = att_fmt != "none"
 
-    # Hardware binding is NOT proven by attestation alone (nor by BE/BS).
-    # Attestation can inform RP policy but is not equivalent to "definitely hardware-bound".
-    # Lack of attestation also does not prove synced. So synthetic records never prove it here.
+    # Hardware binding for these synthetic cases: attestation presence alone,
+    # without sufficient trusted metadata/evidence, does not establish hardware
+    # binding. No universal WebAuthn rule is asserted here; this is a modeled-
+    # evidence conclusion for these synthetic records only.
     hardware_binding_proven = False
     hardware_reason = (
-        "Attestation can inform RP policy but is not equivalent to 'definitely hardware-bound'; "
-        "synthetic record alone does not prove hardware binding"
+        "Attestation presence alone, without sufficient trusted metadata/evidence, "
+        "does not establish hardware binding for this synthetic case"
         if attestation_present else
-        "No attestation present; absence does not prove synced nor hardware-bound"
+        "No attestation present; absence does not establish hardware binding and "
+        "does not prove currently backed up -- attestation alone would not suffice anyway"
     )
 
-    # Discoverable does not prove sync state — report independently
-    # Platform/roaming does not automatically mean synced — report independently
+    # Discoverable does not prove current backup state -- report independently
+    # Platform/roaming does not automatically mean backup-eligible/currently backed up -- report independently
     discoverable_reason = "discoverable is orthogonal to BE/BS backup state"
     authenticator_reason = (
-        f"authenticator={authenticator} does not imply sync state; BE/BS is authoritative"
+        f"authenticator={authenticator} does not imply backup state; BE/BS is authoritative"
     )
 
     return {
@@ -118,8 +121,10 @@ def main():
     multi = sum(1 for r in results if r["credential_scope"] == "multi-device")
 
     out = {
-        "spec": "W3C WebAuthn Level 3 Recommendation (w3.org/TR/webauthn-3, §6.1.3 + authenticator-data flags)",
-        "fido_terminology": "FIDO Alliance: 'passkey' includes both synced (multi-device) and device-bound (single-device) passkeys; discoverable credential is a necessary but not sufficient property",
+        "spec": "W3C WebAuthn Level 3 Recommendation (w3.org/TR/webauthn-3, S.6.1.3 + authenticator-data flags)",
+        "fido_terminology": "FIDO Alliance: 'passkey' includes both synced (multi-device, currently backed up, BS=1) and device-bound (single-device, BE=0) passkeys; BE=1 establishes backup eligibility, not current sync state; discoverable is necessary but not sufficient",
+        "correction_note": "BE=1 establishes backup eligibility, not current sync state; 1,0 is backup-eligible not currently backed up, 1,1 is currently backed up",
+        "attestation_note": "Attestation presence alone, without sufficient trusted metadata/evidence, does not establish hardware binding for these synthetic cases (modeled-evidence conclusion, not a universal WebAuthn rule)",
         "be_bs_table": "0,0=single-device | 0,1=invalid | 1,0=multi-device not backed up | 1,1=multi-device backed up",
         "total": len(results),
         "single_device": single,
@@ -131,26 +136,26 @@ def main():
     RESULTS_JSON.write_text(json.dumps(out, indent=2) + "\n")
 
     lines = []
-    lines.append("# Results — hn-webauthn-passkey-state-boundary-lab")
+    lines.append("# Results -- hn-webauthn-passkey-state-boundary-lab")
     lines.append("")
-    lines.append("Spec: **W3C WebAuthn Level 3** §6.1.3 Credential Backup State + authenticator-data flags (BE bit 3, BS bit 4).")
+    lines.append("Spec: **W3C WebAuthn Level 3** S.6.1.3 Credential Backup State + authenticator-data flags (BE bit 3, BS bit 4).")
     lines.append("FIDO: **passkey = discoverable credential** usable for passkey UX; includes **synced** and **device-bound** variants.")
     lines.append("")
-    lines.append(f"**{len(results)} cases · {single} single-device · {multi} multi-device · {invalid_count} invalid** (BE=0 BS=1) · hardware_binding_proven: 0 (by design)")
+    lines.append(f"**{len(results)} cases - {single} single-device - {multi} multi-device - {invalid_count} invalid** (BE=0 BS=1) - hardware_binding_proven: 0 (by design)")
     lines.append("")
     lines.append("| Case | BE | BS | Scope | backup_eligible | currently_backed_up | discoverable | attest | hw_proven | valid |")
     lines.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for r in results:
         lines.append(f"| {r['case_id']} | {r['be']} | {r['bs']} | {r['credential_scope']} | {r['backup_eligible']} | {r['currently_backed_up']} | {r['discoverable']} | {r['attestation_present']} | {r['hardware_binding_proven']} | {r['valid_combination']} |")
     lines.append("")
-    lines.append("Six outputs are kept separate — no overall 'secure passkey' verdict is emitted.")
+    lines.append("Six outputs are kept separate -- no overall 'secure passkey' verdict is emitted.")
     lines.append("")
-    lines.append("**BE/BS normative table:** 0,0 single-device · 0,1 invalid · 1,0 multi-device not backed up · 1,1 multi-device backed up.")
-    lines.append("**Discoverable** does not prove sync state. **Platform** does not imply synced. **Roaming** does not imply single-device.")
-    lines.append("**Attestation** informs RP policy but is not proof of hardware binding; lack of attestation does not prove synced.")
+    lines.append("**BE/BS normative table:** 0,0 single-device - 0,1 invalid - 1,0 multi-device not backed up - 1,1 multi-device backed up. **BE=1 establishes backup eligibility, not current sync state.**")
+    lines.append("**Discoverable** does not prove current backup state. **Platform** does not imply backup-eligible. **Roaming** does not imply single-device.")
+    lines.append("**Attestation:** presence alone, without sufficient trusted metadata/evidence, does not establish hardware binding for these synthetic cases (modeled-evidence conclusion, not a universal WebAuthn rule); lack of attestation does not prove currently backed up.")
     lines.append("")
     RESULTS_MD.write_text("\n".join(lines) + "\n")
-    print(f"{len(results)} cases · {single} single-device · {multi} multi-device · {invalid_count} invalid -> results.json + RESULTS.md")
+    print(f"{len(results)} cases - {single} single-device - {multi} multi-device - {invalid_count} invalid -> results.json + RESULTS.md")
 
 if __name__ == "__main__":
     main()

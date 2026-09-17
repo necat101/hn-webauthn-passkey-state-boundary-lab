@@ -12,25 +12,25 @@
   },
   {
     "id": "multidevice-not-backed-up",
-    "title": "Backup-eligible but not currently backed up",
+    "title": "Backup-eligible but not currently backed up (BE=1 BS=0)",
     "be": 1,
     "bs": 0,
     "discoverable": true,
     "attestation_format": "none",
     "authenticator": "platform",
     "transports": ["internal", "hybrid"],
-    "description": "BE=1 BS=0: multi-device credential, not currently backed up. Synced-capable passkey that has not yet been backed up."
+    "description": "BE=1 BS=0: backup-eligible multi-device credential, not currently backed up. BE=1 establishes eligibility, not current sync state."
   },
   {
     "id": "multidevice-backed-up",
-    "title": "Backup-eligible and currently backed up (synced)",
+    "title": "Currently backed up (BE=1 BS=1)",
     "be": 1,
     "bs": 1,
     "discoverable": true,
     "attestation_format": "none",
     "authenticator": "platform",
     "transports": ["internal", "hybrid"],
-    "description": "BE=1 BS=1: multi-device credential currently backed up. Typical synced passkey."
+    "description": "BE=1 BS=1: currently backed up multi-device credential. BS=1 when BE=1 indicates currently backed up."
   },
   {
     "id": "invalid-be0-bs1",
@@ -52,29 +52,29 @@
     "attestation_format": "packed",
     "attestation_cert": "self",
     "aaguid": "00000000-0000-0000-0000-000000000001",
-    "description": "Discoverable + single-device: FIDO still calls this a passkey (device-bound passkey). Has packed self-attestation."
+    "description": "Discoverable single-device: FIDO still calls this a passkey (device-bound passkey). BE=0 BS=0 even though passkey. Attestation presence alone without trusted metadata does not establish hardware binding."
   },
   {
     "id": "synced-passkey-with-attestation",
-    "title": "Synced passkey with packed attestation",
+    "title": "Currently backed up passkey with packed attestation",
     "be": 1,
     "bs": 1,
     "discoverable": true,
     "attestation_format": "packed",
     "attestation_cert": "x5c-chain",
     "aaguid": "00000000-0000-0000-0000-000000000002",
-    "description": "BE=1 BS=1 discoverable with attestation. Attestation informs RP policy but is not proof the credential is hardware-bound."
+    "description": "BE=1 BS=1 discoverable with attestation. Attestation presence alone, without sufficient trusted metadata/evidence, does not establish hardware binding for this synthetic case."
   },
   {
     "id": "roaming-multidevice-not-backed",
-    "title": "Roaming authenticator, backup-eligible not backed up",
+    "title": "Roaming authenticator, backup-eligible not currently backed up",
     "be": 1,
     "bs": 0,
     "discoverable": true,
     "attestation_format": "none",
     "authenticator": "roaming",
     "transports": ["usb", "nfc"],
-    "description": "Roaming authenticator that is still BE=1 BS=0. Demonstrates roaming != automatically non-synced / BE=0."
+    "description": "Roaming authenticator that is still BE=1 BS=0: backup-eligible, not currently backed up. Roaming != automatically single-device / BE=0."
   },
   {
     "id": "platform-single-device-discoverable",
@@ -85,28 +85,28 @@
     "attestation_format": "none",
     "authenticator": "platform",
     "transports": ["internal"],
-    "description": "Platform authenticator does not automatically mean synced. This is a platform device-bound passkey."
+    "description": "Platform authenticator BE=0 BS=0 discoverable: platform does not imply backup-eligible or currently backed up. Device-bound passkey."
   },
   {
     "id": "single-device-no-attest-lack-does-not-prove-synced",
-    "title": "Single-device, no attestation — lack of attestation does not prove synced",
+    "title": "Single-device, no attestation -- lack of attestation does not prove currently backed up",
     "be": 0,
     "bs": 0,
     "discoverable": false,
     "attestation_format": "none",
     "authenticator": "roaming",
     "transports": ["usb"],
-    "description": "Roaming single-device without attestation. Missing attestation by itself does not prove the credential is synced."
+    "description": "Roaming single-device without attestation. Lack of attestation does not prove currently backed up; BE/BS is authoritative."
   },
   {
     "id": "synced-no-attest-discoverable",
-    "title": "Synced credential, discoverable, no attestation, BS=1",
+    "title": "Currently backed up, discoverable, no attestation (BS=1 when BE=1)",
     "be": 1,
     "bs": 1,
     "discoverable": true,
     "attestation_format": "none",
     "authenticator": "platform",
     "transports": ["internal", "hybrid"],
-    "description": "Synced multi-device backed-up credential without attestation. Shows synced state comes from BE/BS, not attestation."
+    "description": "BE=1 BS=1 discoverable without attestation. Currently-backed-up state comes from BS=1 when BE=1, not from attestation or discoverability."
   }
 ]
