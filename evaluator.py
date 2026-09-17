@@ -153,7 +153,6 @@ def main():
     lines.append("**BE/BS normative table:** 0,0 single-device - 0,1 invalid - 1,0 multi-device not backed up - 1,1 multi-device backed up. **BE=1 establishes backup eligibility, not current sync state.**")
     lines.append("**Discoverable** does not prove current backup state. **Platform** does not imply backup-eligible. **Roaming** does not imply single-device.")
     lines.append("**Attestation:** presence alone, without sufficient trusted metadata/evidence, does not establish hardware binding for these synthetic cases (modeled-evidence conclusion, not a universal WebAuthn rule); lack of attestation does not prove currently backed up.")
-    lines.append("")
     RESULTS_MD.write_text("\n".join(lines) + "\n")
     print(f"{len(results)} cases - {single} single-device - {multi} multi-device - {invalid_count} invalid -> results.json + RESULTS.md")
 
